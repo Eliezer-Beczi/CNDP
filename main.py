@@ -1,4 +1,6 @@
-from graph import Graph
+# local imports
+from model.graph import Graph
+from utils.vertex_cover import greedy_vertex_cover
 
 
 def main():

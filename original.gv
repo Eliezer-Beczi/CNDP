@@ -2,40 +2,18 @@ digraph G {
 	graph [compound=true fontsize=10 nodesep=0.5 rankdir=LR ranksep=0.5]
 	node [fillcolor=yellow fontsize=10 shape=circle style=filled]
 	edge [dir=none]
-	6
-	7
-	3
-	4
-	5
 	1
 	2
-	9
+	3
+	4
+	6
+	7
 	8
-	10
-	11
-	12
+	5
+	1 -> 2
+	2 -> 3
+	4 -> 6
+	4 -> 8
 	6 -> 7
-	6 -> 3
-	6 -> 4
-	6 -> 5
-	7 -> 5
-	7 -> 4
-	7 -> 3
-	3 -> 5
-	3 -> 4
-	3 -> 1
-	4 -> 5
-	4 -> 2
-	1 -> 9
-	2 -> 8
-	9 -> 8
-	9 -> 10
-	9 -> 11
-	9 -> 12
-	8 -> 10
-	8 -> 11
-	8 -> 12
-	10 -> 12
-	10 -> 11
-	11 -> 12
+	7 -> 8
 }

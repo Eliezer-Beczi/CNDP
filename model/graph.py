@@ -1,5 +1,8 @@
-from graphviz import Digraph
+# system imports
 from collections import deque
+
+# third party imports
+from graphviz import Digraph
 
 
 class Graph():
@@ -9,20 +12,27 @@ class Graph():
 
             for line in f:
                 arr = line.split()
-                print(arr)
+
+                # skip line if empty
+                if not arr:
+                    continue
 
                 src = arr[0]
-                dest = arr[1]
 
-                if src in self.dict:
-                    self.dict[src].append(dest)
-                else:
-                    self.dict[src] = [dest]
+                if len(arr) > 1:  # edge
+                    dest = arr[1]
 
-                if dest in self.dict:
-                    self.dict[dest].append(src)
-                else:
-                    self.dict[dest] = [src]
+                    if src in self.dict:
+                        self.dict[src].append(dest)
+                    else:
+                        self.dict[src] = [dest]
+
+                    if dest in self.dict:
+                        self.dict[dest].append(src)
+                    else:
+                        self.dict[dest] = [src]
+                else:  # isolated vertex
+                    self.dict[src] = []
 
     def genDOTSrcCode(self):
         dot = Digraph("G")
@@ -77,3 +87,19 @@ class Graph():
                 f.write(f"{dest} {src}\n")
 
         f.close()
+
+    def __str__(self):
+        string = ""
+
+        for u, nbrs in self.dict.items():
+            string += f"{u} => [ "
+
+            for i in range(len(nbrs) - 1):
+                string += f"{nbrs[i]}, "
+
+            if len(nbrs) > 0:
+                string += f"{nbrs[-1]}"
+
+            string += " ]\n"
+
+        return string
