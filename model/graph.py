@@ -63,7 +63,12 @@ class Graph():
 
         return dot
 
-    def removeNodeFromGraph(self, node):
+    def addNode(self, *nodes):
+        for node in nodes:
+            if node not in self.dict:
+                self.dict[node] = []
+
+    def removeNode(self, node):
         try:
             del self.dict[node]
         except:
@@ -77,6 +82,34 @@ class Graph():
                 pass
 
         return True
+
+    def addEdge(self, u, v):
+        if u not in self.dict:
+            self.dict[u] = v
+        else:
+            for node in v:
+                if node not in self.dict[u]:
+                    self.dict[u].append(node)
+
+        for node in v:
+            if node not in self.dict:
+                self.dict[node] = [u]
+            else:
+                if u not in self.dict[node]:
+                    self.dict[node].append(u)
+
+    def removeEdge(self, u, v):
+        if u in self.dict:
+            try:
+                self.dict[u].remove(v)
+            except:
+                pass
+
+        if v in self.dict:
+            try:
+                self.dict[v].remove(u)
+            except:
+                pass
 
     def printToFile(self, fileName="output.txt"):
         f = open(fileName, 'w')
