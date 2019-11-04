@@ -1,6 +1,5 @@
 # system imports
 import copy
-import random
 
 # local imports
 from .connectivity_metrics import pairwise_connectivity
@@ -34,19 +33,17 @@ def minimize_pairwise_connectivity(G, MIS, S0):
     return vertices
 
 
-def maximize_disconnected_pairs(G, MIS, k):
+def maximize_disconnected_pairs(MIS, k):
     vertices = []
     maximum = -1
     ok = False
 
-    S0 = [*MIS.dict]
-
-    for i in S0:
+    for i in MIS.dict:
         temp = copy.deepcopy(MIS)
         temp.removeNode(i)
         metric = pairwise_connectivity(temp)
 
-        connectivity = comb(len(temp), k, exact=True) - metric
+        connectivity = comb(len(temp.dict), k, exact=True) - metric
 
         if connectivity > maximum or not ok:
             vertices.clear()

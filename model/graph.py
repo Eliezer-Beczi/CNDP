@@ -8,31 +8,17 @@ from graphviz import Digraph
 class Graph():
     def __init__(self, filePath):
         with open(filePath) as f:
+            _ = f.readline()  # number of nodes
             self.dict = {}
 
             for line in f:
-                arr = line.split()
-
-                # skip line if empty
-                if not arr:
-                    continue
+                arr = line.split(':')
 
                 src = arr[0]
+                self.dict[src] = []
 
-                if len(arr) > 1:  # edge
-                    dest = arr[1]
-
-                    if src in self.dict:
-                        self.dict[src].append(dest)
-                    else:
-                        self.dict[src] = [dest]
-
-                    if dest in self.dict:
-                        self.dict[dest].append(src)
-                    else:
-                        self.dict[dest] = [src]
-                else:  # isolated vertex
-                    self.dict[src] = []
+                for dest in arr[1].split():
+                    self.dict[src].append(dest)
 
     def genDOTSrcCode(self):
         dot = Digraph("G")

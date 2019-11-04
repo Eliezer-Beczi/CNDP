@@ -8,8 +8,9 @@ def main():
     dot = G.genDOTSrcCode()
     dot.render("original.gv", view=True)
 
-    N = 10
-    cnp.genetic_algorithm(G, 3, N)
+    N = 20
+    S, fitness = cnp.genetic_algorithm(G, 50, N)
+    print(fitness)
 
 
 main()
