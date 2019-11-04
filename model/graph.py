@@ -72,8 +72,7 @@ class Graph():
         try:
             del self.dict[node]
         except:
-            print("Node is not present!")
-            return False
+            raise Exception("Node is not present!")
 
         for val in self.dict.values():
             try:

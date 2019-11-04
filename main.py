@@ -1,6 +1,6 @@
 # local imports
 from model.graph import Graph
-from utils.cnp import greedy_cnp
+import utils.cnp as cnp
 
 
 def main():
@@ -8,7 +8,8 @@ def main():
     dot = G.genDOTSrcCode()
     dot.render("original.gv", view=True)
 
-    print(greedy_cnp(G, 4))
+    N = 10
+    cnp.genetic_algorithm(G, 3, N)
 
 
 main()
