@@ -1,6 +1,3 @@
-# system imports
-import copy
-
 # local imports
 from .graph_components import connected_components
 

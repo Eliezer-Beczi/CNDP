@@ -1,5 +1,4 @@
 # system imports
-import copy
 import random
 import functools
 
@@ -7,25 +6,31 @@ import functools
 from .vertex_cover import greedy_vertex_cover
 import utils.objective_functions as objective_functions
 import utils.connectivity_metrics as connectivity_metrics
+import utils.subgraph_store as subgraph_store
 
 
 def greedy_cnp(G, k):
     S0 = greedy_vertex_cover(G)
-    MIS = copy.deepcopy(G)
 
-    for node in S0:
-        MIS.removeNode(node)
+    try:
+        MIS = subgraph_store.retrieve_from_store(S0)
+    except:
+        MIS = subgraph_store.add_to_store(G, S0)
 
     while len(S0) > k:
         B = objective_functions.minimize_pairwise_connectivity(G, MIS, S0)
         i = random.choice(B)
         S0.remove(i)
-        MIS.addEdge(i, list(set(G.dict[i]) - set(S0)))
+
+        try:
+            MIS = subgraph_store.retrieve_from_store(S0)
+        except:
+            MIS = subgraph_store.add_to_store(G, S0)
 
     return S0
 
 
-def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=1000):
+def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=100):
     """
     ================
     helper functions
@@ -33,8 +38,12 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
     """
 
     def _fitness_function(S):
-        new_G = _truncate_graph(G, S)
-        metric = connectivity_metrics.pairwise_connectivity(new_G)
+        try:
+            subgraph = subgraph_store.retrieve_from_store(S)
+        except:
+            subgraph = subgraph_store.add_to_store(G, S)
+
+        metric = connectivity_metrics.pairwise_connectivity(subgraph)
         commonalities = list(set(S).intersection(set(best_S)))
 
         return metric + gamma * len(commonalities)
@@ -60,11 +69,9 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
 
     P = []  # population
 
-    # fill half of the population with random solutions
-    for i in range(N // 2):
+    for i in range(N // 100):
         P.append(greedy_cnp(G, k))
 
-    # fill the other half with greedy generated ones
     while len(P) < N:
         P.append(_generate_random_solution(G, k))
 
@@ -72,7 +79,11 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
     gamma = _update(G, best_S, P, alpha)
     best_S_fitness = _fitness_function(best_S)  # fitness of the best solution
 
+    print(best_S_fitness)
+
     while t < tmax:
+        print(f"Generation: {t + 1}")
+
         new_P = _new_generation(G, k, N, P)
         _mutation(G, k, N, new_P, pi)
 
@@ -84,10 +95,12 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
         curr_S = P[0]
         curr_S_fitness = _fitness_function(curr_S)
 
-        if best_S_fitness < curr_S_fitness:
+        if best_S_fitness > curr_S_fitness:
             best_S = curr_S.copy()
             best_S_fitness = curr_S_fitness
             pi = pi_min
+
+            print(best_S_fitness)
         else:
             pi = min(pi + delta_pi, pi_max)
 
@@ -102,15 +115,6 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
 PRIVATE FUNCTIONS
 =================
 """
-
-
-def _truncate_graph(G, S):
-    new_G = copy.deepcopy(G)
-
-    for node in S:
-        new_G.removeNode(node)
-
-    return new_G
 
 
 def _generate_random_solution(G, k):
@@ -133,17 +137,26 @@ def _new_generation(G, k, N, P):
             r2 = random.randrange(N)
 
         new_S = list(set(P[r1] + P[r2]))
-        MIS = copy.deepcopy(G)
+        random.shuffle(new_S)
 
-        for node in new_S:
-            MIS.removeNode(node)
+        if len(new_S) > k:
+            new_S = new_S[:k]
 
-        while len(new_S) > k:
-            B = objective_functions.minimize_pairwise_connectivity(
-                G, MIS, new_S)
-            u = random.choice(B)
-            new_S.remove(u)
-            MIS.addEdge(u, list(set(G.dict[u]) - set(new_S)))
+        # try:
+        #     MIS = subgraph_store.retrieve_from_store(new_S)
+        # except:
+        #     MIS = subgraph_store.add_to_store(G, new_S)
+
+        # while len(new_S) > k:
+        #     B = objective_functions.minimize_pairwise_connectivity(
+        #         G, MIS, new_S)
+        #     u = random.choice(B)
+        #     new_S.remove(u)
+
+        #     try:
+        #         MIS = subgraph_store.retrieve_from_store(new_S)
+        #     except:
+        #         MIS = subgraph_store.add_to_store(G, new_S)
 
         new_P.append(new_S)
 
@@ -161,22 +174,37 @@ def _mutation(G, k, N, new_P, pi):
             for j in range(ng):
                 new_S.pop(random.randrange(len(new_S)))
 
-            MIS = copy.deepcopy(G)
-
-            for node in new_S:
-                MIS.removeNode(node)
+            nodes = G.dict.keys() - set(new_S)
 
             while len(new_S) < k:
-                B = objective_functions.maximize_disconnected_pairs(MIS, k)
-                u = random.choice(B)
+                u = random.choice(tuple(nodes))
                 new_S.append(u)
-                MIS.removeNode(u)
+                nodes.discard(u)
+
+            # try:
+            #     MIS = subgraph_store.retrieve_from_store(new_S)
+            # except:
+            #     MIS = subgraph_store.add_to_store(G, new_S)
+
+            # while len(new_S) < k:
+            #     B = objective_functions.maximize_disconnected_pairs(G, MIS, k)
+            #     u = random.choice(B)
+            #     new_S.append(u)
+
+            #     try:
+            #         MIS = subgraph_store.retrieve_from_store(new_S)
+            #     except:
+            #         MIS = subgraph_store.add_to_store(G, new_S)
 
 
 def _update(G, best_S, P, alpha):
-    new_G = _truncate_graph(G, best_S)
-    metric = connectivity_metrics.pairwise_connectivity(new_G)
+    try:
+        subgraph = subgraph_store.retrieve_from_store(best_S)
+    except:
+        subgraph = subgraph_store.add_to_store(G, best_S)
+
     avg = 0
+    metric = connectivity_metrics.pairwise_connectivity(subgraph)
 
     for S in P:
         avg += len(list(set(S).intersection(set(best_S))))

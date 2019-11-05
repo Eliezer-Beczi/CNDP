@@ -15,10 +15,10 @@ class Graph():
                 arr = line.split(':')
 
                 src = arr[0]
-                self.dict[src] = []
+                self.dict[src] = set()
 
                 for dest in arr[1].split():
-                    self.dict[src].append(dest)
+                    self.dict[src].add(dest)
 
     def genDOTSrcCode(self):
         dot = Digraph("G")
@@ -52,7 +52,7 @@ class Graph():
     def addNode(self, *nodes):
         for node in nodes:
             if node not in self.dict:
-                self.dict[node] = []
+                self.dict[node] = set()
 
     def removeNode(self, node):
         try:
@@ -61,10 +61,7 @@ class Graph():
             raise Exception("Node is not present!")
 
         for val in self.dict.values():
-            try:
-                val.remove(node)
-            except:
-                pass
+            val.discard(node)
 
         return True
 
@@ -74,35 +71,29 @@ class Graph():
         else:
             for node in v:
                 if node not in self.dict[u]:
-                    self.dict[u].append(node)
+                    self.dict[u].add(node)
 
         for node in v:
             if node not in self.dict:
-                self.dict[node] = [u]
+                self.dict[node] = set([u])
             else:
                 if u not in self.dict[node]:
-                    self.dict[node].append(u)
+                    self.dict[node].add(u)
 
     def removeEdge(self, u, v):
-        if u in self.dict:
-            try:
-                self.dict[u].remove(v)
-            except:
-                pass
-
-        if v in self.dict:
-            try:
-                self.dict[v].remove(u)
-            except:
-                pass
+        self.dict[u].discard(v)
+        self.dict[v].remove(u)
 
     def printToFile(self, fileName="output.txt"):
         f = open(fileName, 'w')
 
         for src, val in self.dict.items():
+            f.write(f"{src}: ")
+
             for dest in val:
-                f.write(f"{src} {dest}\n")
-                f.write(f"{dest} {src}\n")
+                f.write(f"{dest} ")
+
+            f.write("\n")
 
         f.close()
 
@@ -110,14 +101,11 @@ class Graph():
         string = ""
 
         for u, nbrs in self.dict.items():
-            string += f"{u} => [ "
+            string += f"{u}: "
 
-            for i in range(len(nbrs) - 1):
-                string += f"{nbrs[i]}, "
+            for v in nbrs:
+                string += f"{v} "
 
-            if len(nbrs) > 0:
-                string += f"{nbrs[-1]}"
-
-            string += " ]\n"
+            string += "\n"
 
         return string

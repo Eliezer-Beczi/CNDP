@@ -1,8 +1,6 @@
-# system imports
-import copy
-
 # local imports
 from .connectivity_metrics import pairwise_connectivity
+import utils.subgraph_store as subgraph_store
 
 # third party imports
 from scipy.special import comb
@@ -16,11 +14,17 @@ def minimize_pairwise_connectivity(G, MIS, S0):
     minimum = -1
     ok = False
 
-    for i in S0:
-        temp = copy.deepcopy(MIS)
-        temp.addEdge(i, list(set(G.dict[i]) - set(S0)))
+    nodes = set(S0)
 
-        connectivity = pairwise_connectivity(temp)
+    for i in S0:
+        nodes.discard(i)
+
+        try:
+            subgraph = subgraph_store.retrieve_from_store(nodes)
+        except:
+            subgraph = subgraph_store.add_to_store(G, nodes)
+
+        connectivity = pairwise_connectivity(subgraph)
 
         if connectivity < minimum or not ok:
             vertices.clear()
@@ -30,20 +34,28 @@ def minimize_pairwise_connectivity(G, MIS, S0):
         elif connectivity == minimum:
             vertices.append(i)
 
+        nodes.add(i)
+
     return vertices
 
 
-def maximize_disconnected_pairs(MIS, k):
+def maximize_disconnected_pairs(G, MIS, k):
     vertices = []
     maximum = -1
     ok = False
 
-    for i in MIS.dict:
-        temp = copy.deepcopy(MIS)
-        temp.removeNode(i)
-        metric = pairwise_connectivity(temp)
+    nodes_in_MIS = set(MIS.dict.keys())
 
-        connectivity = comb(len(temp.dict), k, exact=True) - metric
+    for i in MIS.dict:
+        nodes_in_MIS.discard(i)
+
+        try:
+            subgraph = subgraph_store.retrieve_from_store(nodes_in_MIS)
+        except:
+            subgraph = subgraph_store.add_to_store(G, nodes_in_MIS)
+
+        metric = pairwise_connectivity(subgraph)
+        connectivity = comb(len(nodes_in_MIS), k, exact=True) - metric
 
         if connectivity > maximum or not ok:
             vertices.clear()
@@ -52,5 +64,7 @@ def maximize_disconnected_pairs(MIS, k):
             ok = True
         elif connectivity == maximum:
             vertices.append(i)
+
+        nodes_in_MIS.add(i)
 
     return vertices
