@@ -18,7 +18,7 @@ def greedy_cnp(G, k):
         MIS = subgraph_store.add_to_store(G, S0)
 
     while len(S0) > k:
-        B = objective_functions.minimize_pairwise_connectivity(G, MIS, S0)
+        B = objective_functions.minimize_pairwise_connectivity(G, S0)
         i = random.choice(B)
         S0.remove(i)
 
