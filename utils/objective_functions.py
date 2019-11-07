@@ -6,7 +6,7 @@ import utils.subgraph_store as subgraph_store
 from scipy.special import comb
 
 
-def minimize_pairwise_connectivity(G, MIS, S0):
+def minimize_pairwise_connectivity(G, S0):
     if not S0:
         raise Exception("S0 list is empty!")
 
