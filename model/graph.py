@@ -1,14 +1,11 @@
-# system imports
-from collections import deque
-
 # third party imports
 from graphviz import Digraph
 
 
-class Graph():
+class Graph:
     def __init__(self, filePath):
         with open(filePath) as f:
-            _ = f.readline()  # number of nodes
+            self.numOfNodes = f.readline().rstrip()
             self.dict = {}
 
             for line in f:

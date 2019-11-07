@@ -31,12 +31,6 @@ def greedy_cnp(G, k):
 
 
 def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=100):
-    """
-    ================
-    helper functions
-    ================
-    """
-
     def _fitness_function(S):
         try:
             subgraph = subgraph_store.retrieve_from_store(S)
@@ -51,47 +45,31 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
     def my_cmp(a, b):
         return _fitness_function(a) - _fitness_function(b)
 
-    """
-    =========
-    variables
-    =========
-    """
+    my_key = functools.cmp_to_key(my_cmp)
 
     t = 0
     pi = pi_min
-    my_key = functools.cmp_to_key(my_cmp)
+    P = []
 
-    """
-    =========
-    algorithm
-    =========
-    """
-
-    P = []  # population
-
-    for i in range(N // 100):
-        P.append(greedy_cnp(G, k))
-
-    while len(P) < N:
+    for _ in range(N):
         P.append(_generate_random_solution(G, k))
 
-    best_S = P[0].copy()  # best solution
+    best_S = P[0].copy()
     gamma = _update(G, best_S, P, alpha)
-    best_S_fitness = _fitness_function(best_S)  # fitness of the best solution
+    best_S_fitness = _fitness_function(best_S)
 
     print(best_S_fitness)
 
     while t < tmax:
         print(f"Generation: {t + 1}")
 
-        new_P = _new_generation(G, k, N, P)
+        new_P = _new_generation(k, N, P)
         _mutation(G, k, N, new_P, pi)
 
         P.extend(new_P)
         P.sort(key=my_key)
         P = P[:N]
 
-        # keep track of best solution
         curr_S = P[0]
         curr_S_fitness = _fitness_function(curr_S)
 
@@ -126,7 +104,7 @@ def _generate_random_solution(G, k):
     return S
 
 
-def _new_generation(G, k, N, P):
+def _new_generation(k, N, P):
     new_P = []
 
     for i in range(N):
@@ -141,22 +119,6 @@ def _new_generation(G, k, N, P):
 
         if len(new_S) > k:
             new_S = new_S[:k]
-
-        # try:
-        #     MIS = subgraph_store.retrieve_from_store(new_S)
-        # except:
-        #     MIS = subgraph_store.add_to_store(G, new_S)
-
-        # while len(new_S) > k:
-        #     B = objective_functions.minimize_pairwise_connectivity(
-        #         G, MIS, new_S)
-        #     u = random.choice(B)
-        #     new_S.remove(u)
-
-        #     try:
-        #         MIS = subgraph_store.retrieve_from_store(new_S)
-        #     except:
-        #         MIS = subgraph_store.add_to_store(G, new_S)
 
         new_P.append(new_S)
 
@@ -180,21 +142,6 @@ def _mutation(G, k, N, new_P, pi):
                 u = random.choice(tuple(nodes))
                 new_S.append(u)
                 nodes.discard(u)
-
-            # try:
-            #     MIS = subgraph_store.retrieve_from_store(new_S)
-            # except:
-            #     MIS = subgraph_store.add_to_store(G, new_S)
-
-            # while len(new_S) < k:
-            #     B = objective_functions.maximize_disconnected_pairs(G, MIS, k)
-            #     u = random.choice(B)
-            #     new_S.append(u)
-
-            #     try:
-            #         MIS = subgraph_store.retrieve_from_store(new_S)
-            #     except:
-            #         MIS = subgraph_store.add_to_store(G, new_S)
 
 
 def _update(G, best_S, P, alpha):
