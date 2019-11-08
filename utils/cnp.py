@@ -1,62 +1,46 @@
-# system imports
 import random
 import functools
+import networkx as nx
+from networkx.algorithms.approximation import vertex_cover
 
-# local imports
-from .vertex_cover import greedy_vertex_cover
-import utils.objective_functions as objective_functions
-import utils.connectivity_metrics as connectivity_metrics
-import utils.subgraph_store as subgraph_store
+import utils.connectivity_metrics as connectivity_metric
+import utils.objective_functions as objective_function
 
 
 def greedy_cnp(G, k):
-    S0 = greedy_vertex_cover(G)
-
-    try:
-        MIS = subgraph_store.retrieve_from_store(S0)
-    except:
-        MIS = subgraph_store.add_to_store(G, S0)
+    S0 = vertex_cover.min_weighted_vertex_cover(G)
 
     while len(S0) > k:
-        B = objective_functions.minimize_pairwise_connectivity(G, S0)
+        B = objective_function.minimize_pairwise_connectivity(G, S0)
         i = random.choice(B)
-        S0.remove(i)
-
-        try:
-            MIS = subgraph_store.retrieve_from_store(S0)
-        except:
-            MIS = subgraph_store.add_to_store(G, S0)
+        S0.discard(i)
 
     return S0
 
 
 def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=100):
-    def _fitness_function(S):
-        try:
-            subgraph = subgraph_store.retrieve_from_store(S)
-        except:
-            subgraph = subgraph_store.add_to_store(G, S)
-
-        metric = connectivity_metrics.pairwise_connectivity(subgraph)
-        commonalities = list(set(S).intersection(set(best_S)))
+    def fitness_function(S):
+        subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in S)
+        metric = connectivity_metric.pairwise_connectivity(subgraph)
+        commonalities = S.intersection(best_S)
 
         return metric + gamma * len(commonalities)
 
     def my_cmp(a, b):
-        return _fitness_function(a) - _fitness_function(b)
-
-    my_key = functools.cmp_to_key(my_cmp)
+        return fitness_function(a) - fitness_function(b)
 
     t = 0
     pi = pi_min
+
     P = []
+    my_key = functools.cmp_to_key(my_cmp)
 
     for _ in range(N):
         P.append(_generate_random_solution(G, k))
 
     best_S = P[0].copy()
     gamma = _update(G, best_S, P, alpha)
-    best_S_fitness = _fitness_function(best_S)
+    best_S_fitness = fitness_function(best_S)
 
     print(best_S_fitness)
 
@@ -71,11 +55,12 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
         P = P[:N]
 
         curr_S = P[0]
-        curr_S_fitness = _fitness_function(curr_S)
+        curr_S_fitness = fitness_function(curr_S)
 
-        if best_S_fitness > curr_S_fitness:
+        if curr_S_fitness < best_S_fitness:
             best_S = curr_S.copy()
             best_S_fitness = curr_S_fitness
+
             pi = pi_min
 
             print(best_S_fitness)
@@ -96,12 +81,12 @@ PRIVATE FUNCTIONS
 
 
 def _generate_random_solution(G, k):
-    S = [*G.dict]
+    S = list(G)
 
     while len(S) > k:
         S.pop(random.randrange(len(S)))
 
-    return S
+    return set(S)
 
 
 def _new_generation(k, N, P):
@@ -114,7 +99,7 @@ def _new_generation(k, N, P):
         while r1 == r2:
             r2 = random.randrange(N)
 
-        new_S = list(set(P[r1] + P[r2]))
+        new_S = P[r1].union(P[r2])
         random.shuffle(new_S)
 
         if len(new_S) > k:
@@ -145,20 +130,14 @@ def _mutation(G, k, N, new_P, pi):
 
 
 def _update(G, best_S, P, alpha):
-    try:
-        subgraph = subgraph_store.retrieve_from_store(best_S)
-    except:
-        subgraph = subgraph_store.add_to_store(G, best_S)
+    subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in best_S)
+    metric = connectivity_metric.pairwise_connectivity(subgraph)
 
     avg = 0
-    metric = connectivity_metrics.pairwise_connectivity(subgraph)
 
     for S in P:
-        avg += len(list(set(S).intersection(set(best_S))))
+        avg += len(S.intersection(best_S))
 
     avg /= len(P)
 
-    if avg == 0:
-        return alpha * metric
-    else:
-        return (alpha * metric) / avg
+    return (alpha * metric) / avg

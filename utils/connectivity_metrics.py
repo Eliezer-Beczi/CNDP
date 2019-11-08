@@ -1,9 +1,8 @@
-# local imports
-from .graph_components import connected_components
+from networkx.algorithms.components import connected
 
 
 def pairwise_connectivity(G):
-    components = connected_components(G)
+    components = connected.connected_components(G)
     result = 0
 
     for component in components:

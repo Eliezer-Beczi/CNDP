@@ -1,7 +1,5 @@
-# system imports
 import copy
 
-# global variables
 graphs = {}
 
 
