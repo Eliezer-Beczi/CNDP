@@ -5,9 +5,6 @@ import utils.connectivity_metrics as connectivity_metrics
 
 
 def minimize_pairwise_connectivity(G, S0):
-    if not S0:
-        raise Exception("S0 list is empty!")
-
     tmp = S0.copy()
     nodes = tmp.copy()
 

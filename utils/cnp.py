@@ -18,7 +18,7 @@ def greedy_cnp(G, k):
     return S0
 
 
-def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=100):
+def genetic_algorithm(G, k, N=30, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=100):
     def fitness_function(S):
         subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in S)
         metric = connectivity_metric.pairwise_connectivity(subgraph)
@@ -41,10 +41,10 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
     gamma = _update(G, best_S, P, alpha)
     best_S_fitness = fitness_function(best_S)
 
-    print(best_S_fitness)
+    # print(best_S_fitness)
 
     while t < tmax:
-        print(f"Generation: {t + 1}")
+        # print(f"Generation: {t + 1}")
 
         new_P = _new_generation(k, N, P)
         _mutation(G, k, N, new_P, pi)
@@ -62,7 +62,7 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
 
             pi = pi_min
 
-            print(best_S_fitness)
+            # print(best_S_fitness)
         else:
             pi = min(pi + delta_pi, pi_max)
 
@@ -143,4 +143,7 @@ def _update(G, best_S, P, alpha):
 
     avg /= len(P)
 
-    return (alpha * metric) / avg
+    if avg == 0:
+        return float('inf')
+    else:
+        return (alpha * metric) / avg
