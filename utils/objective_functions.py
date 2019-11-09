@@ -1,70 +1,73 @@
-# local imports
-from .connectivity_metrics import pairwise_connectivity
-import utils.subgraph_store as subgraph_store
-
-# third party imports
+import networkx as nx
 from scipy.special import comb
+
+import utils.connectivity_metrics as connectivity_metrics
 
 
 def minimize_pairwise_connectivity(G, S0):
     if not S0:
         raise Exception("S0 list is empty!")
 
-    vertices = []
-    minimum = -1
-    ok = False
+    tmp = S0.copy()
+    nodes = tmp.copy()
 
-    nodes = set(S0)
+    node = next(iter(tmp))
+    tmp.discard(node)
 
-    for i in S0:
-        nodes.discard(i)
+    subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in tmp)
+    connectivity = connectivity_metrics.pairwise_connectivity(subgraph)
 
-        try:
-            subgraph = subgraph_store.retrieve_from_store(nodes)
-        except:
-            subgraph = subgraph_store.add_to_store(G, nodes)
+    vertices = [node]
+    minimum = connectivity
 
-        connectivity = pairwise_connectivity(subgraph)
+    while tmp:
+        node = next(iter(tmp))
 
-        if connectivity < minimum or not ok:
-            vertices.clear()
-            vertices.append(i)
+        tmp.discard(node)
+        nodes.discard(node)
+
+        subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in nodes)
+        connectivity = connectivity_metrics.pairwise_connectivity(subgraph)
+
+        if connectivity < minimum:
+            vertices = [node]
             minimum = connectivity
-            ok = True
         elif connectivity == minimum:
-            vertices.append(i)
+            vertices.append(node)
 
-        nodes.add(i)
+        nodes.add(node)
 
     return vertices
 
 
-def maximize_disconnected_pairs(G, MIS, k):
-    vertices = []
-    maximum = -1
-    ok = False
+def maximize_disconnected_pairs(G, k):
+    tmp = set(G)
+    nodes = tmp.copy()
 
-    nodes_in_MIS = set(MIS.dict.keys())
+    node = next(iter(tmp))
+    tmp.discard(node)
 
-    for i in MIS.dict:
-        nodes_in_MIS.discard(i)
+    subgraph = nx.subgraph_view(G, filter_node=lambda n: n in tmp)
+    connectivity = comb(len(tmp), k) - connectivity_metrics.pairwise_connectivity(subgraph)
 
-        try:
-            subgraph = subgraph_store.retrieve_from_store(nodes_in_MIS)
-        except:
-            subgraph = subgraph_store.add_to_store(G, nodes_in_MIS)
+    vertices = [node]
+    maximum = connectivity
 
-        metric = pairwise_connectivity(subgraph)
-        connectivity = comb(len(nodes_in_MIS), k, exact=True) - metric
+    while tmp:
+        node = next(iter(tmp))
 
-        if connectivity > maximum or not ok:
-            vertices.clear()
-            vertices.append(i)
+        tmp.discard(node)
+        nodes.discard(node)
+
+        subgraph = nx.subgraph_view(G, filter_node=lambda n: n in nodes)
+        connectivity = comb(len(tmp), k) - connectivity_metrics.pairwise_connectivity(subgraph)
+
+        if connectivity > maximum:
+            vertices = [node]
             maximum = connectivity
-            ok = True
         elif connectivity == maximum:
-            vertices.append(i)
+            vertices.append(node)
 
-        nodes_in_MIS.add(i)
+        nodes.add(node)
 
     return vertices

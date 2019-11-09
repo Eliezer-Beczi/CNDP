@@ -1,18 +1,15 @@
-# local imports
-from model.graph import Graph
+import networkx as nx
+from graphviz import Source
+
 import utils.cnp as cnp
 
 
 def main():
-    G = Graph("input.txt")
-    dot = G.genDOTSrcCode()
-    dot.render("original.gv", view=True)
+    G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
+    src = Source(nx.nx_pydot.to_pydot(G))
+    src.render("graph.gv", view=True)
 
-    N = 300
-    S, fitness = cnp.genetic_algorithm(G, 50, N)
-
-    print(S)
-    print(fitness)
+    S, S_fitness = cnp.genetic_algorithm(G, 50, 50)
 
 
 main()
