@@ -30,9 +30,8 @@ def genetic_algorithm(G, k, N, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=
         return fitness_function(a) - fitness_function(b)
 
     t = 0
-    pi = pi_min
-
     P = []
+    pi = pi_min
     my_key = functools.cmp_to_key(my_cmp)
 
     for _ in range(N):
@@ -92,7 +91,7 @@ def _generate_random_solution(G, k):
 def _new_generation(k, N, P):
     new_P = []
 
-    for i in range(N):
+    for _ in range(N):
         r1 = random.randrange(N)
         r2 = random.randrange(N)
 
@@ -100,12 +99,15 @@ def _new_generation(k, N, P):
             r2 = random.randrange(N)
 
         new_S = P[r1].union(P[r2])
-        random.shuffle(new_S)
 
-        if len(new_S) > k:
-            new_S = new_S[:k]
+        if len(new_S) == k:
+            new_P.append(new_S)
+        else:
+            tmp = list(new_S)
+            random.shuffle(tmp)
+            tmp = tmp[:k]
 
-        new_P.append(new_S)
+            new_P.append(set(tmp))
 
     return new_P
 
@@ -115,18 +117,19 @@ def _mutation(G, k, N, new_P, pi):
         r = random.randint(1, 100)
 
         if r <= pi:
-            new_S = new_P[i]
+            new_S = list(new_P[i])
             ng = random.randint(0, k)
+            random.shuffle(new_S)
 
-            for j in range(ng):
-                new_S.pop(random.randrange(len(new_S)))
+            for _ in range(ng):
+                new_S.pop()
 
-            nodes = G.dict.keys() - set(new_S)
+            nodes = list(set(G) - set(new_S))
+            random.shuffle(nodes)
 
             while len(new_S) < k:
-                u = random.choice(tuple(nodes))
+                u = nodes.pop()
                 new_S.append(u)
-                nodes.discard(u)
 
 
 def _update(G, best_S, P, alpha):
