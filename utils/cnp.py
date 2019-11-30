@@ -34,7 +34,10 @@ def genetic_algorithm(G, k, N=30, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tm
     pi = pi_min
     my_key = functools.cmp_to_key(my_cmp)
 
-    for _ in range(N):
+    # for _ in range(N // 10):
+    #     P.append(greedy_cnp(G, k))
+
+    while len(P) < N:
         P.append(_generate_random_solution(G, k))
 
     best_S = P[0].copy()
