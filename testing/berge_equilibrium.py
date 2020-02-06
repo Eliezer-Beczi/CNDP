@@ -1,9 +1,13 @@
 import networkx as nx
 import utils.connectivity_metrics as connectivity_metric
-from platypus import NSGAII, Problem, Dominance, Subset, TournamentSelector
+from platypus import NSGAII, EpsMOEA, NSGAIII, EpsNSGAII, Problem, Dominance, Subset, TournamentSelector, \
+    HypervolumeFitnessEvaluator
+import statistics
+import multiprocessing as mp
 
-k = 50
 G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
+k = 50
+num_of_tests = 10
 
 
 def getPairwiseConnectivity(exclude=None):
@@ -64,8 +68,25 @@ class BergeDominance(Dominance):
             return 0
 
 
-algorithm = NSGAII(CNDP(), selector=TournamentSelector(dominance=BergeDominance()))
-algorithm.run(10000)
+def get_critical_nodes():
+    algorithm = NSGAII(CNDP(), selector=TournamentSelector(dominance=BergeDominance()))
+    # algorithm = EpsMOEA(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=BergeDominance()))
+    # algorithm = NSGAIII(CNDP(), divisions_outer=12, selector=TournamentSelector(dominance=BergeDominance()))
+    # algorithm = EpsNSGAII(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=BergeDominance()))
+    algorithm.run(1)
 
-for s in algorithm.result:
-    print(f"{s.variables[0]} => {s.objectives[0]}")
+    fitness = algorithm.result[0].objectives[0]
+    print(fitness)
+
+    return fitness
+
+
+pool = mp.Pool(mp.cpu_count())
+samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
+pool.close()
+
+avg = sum(samples) / len(samples)
+stdev = statistics.stdev(samples)
+
+print(f"Average: {avg}")
+print(f"Standard Deviation: {stdev}")
