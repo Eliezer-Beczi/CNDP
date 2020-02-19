@@ -73,7 +73,7 @@ def get_critical_nodes():
     # algorithm = EpsMOEA(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=BergeDominance()))
     # algorithm = NSGAIII(CNDP(), divisions_outer=12, selector=TournamentSelector(dominance=BergeDominance()))
     # algorithm = EpsNSGAII(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=BergeDominance()))
-    algorithm.run(1)
+    algorithm.run(500)
 
     fitness = algorithm.result[0].objectives[0]
     print(fitness)

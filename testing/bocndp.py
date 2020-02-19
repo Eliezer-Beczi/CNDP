@@ -2,10 +2,10 @@ import multiprocessing as mp
 import statistics
 
 import networkx as nx
-from platypus import NSGAII, Problem, Subset
+from platypus import NSGAII, EpsMOEA, SPEA2, IBEA, PAES, EpsNSGAII, Problem, Subset
 
-G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
-k = 50
+G = nx.read_adjlist("input/Ventresca/ErdosRenyi_n500.txt")
+k = 80
 num_of_tests = 10
 
 
@@ -15,7 +15,7 @@ def connectedComponents(exclude=None):
 
     S = set(exclude)
     subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in S)
-    return nx.connected_components(subgraph)
+    return nx.number_connected_components(subgraph)
 
 
 def cardinalityVariance(exclude=None):
@@ -24,9 +24,9 @@ def cardinalityVariance(exclude=None):
 
     S = set(exclude)
     subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in S)
-    components = nx.connected_components(subgraph)
+    components = list(nx.connected_components(subgraph))
 
-    num_of_components = len(list(components))
+    num_of_components = len(components)
     num_of_nodes = subgraph.number_of_nodes()
     variance = 0
 
@@ -38,9 +38,9 @@ def cardinalityVariance(exclude=None):
     return variance
 
 
-class CNDP(Problem):
+class BOCNDP(Problem):
     def __init__(self):
-        super(CNDP, self).__init__(1, 2)
+        super(BOCNDP, self).__init__(1, 2)
         self.types[:] = Subset(list(G), k)
         self.directions[0] = Problem.MAXIMIZE
         self.directions[1] = Problem.MINIMIZE
@@ -52,24 +52,32 @@ class CNDP(Problem):
 
 
 def get_critical_nodes():
-    algorithm = NSGAII(CNDP())
-    # algorithm = EpsMOEA(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=NashDominance()))
-    # algorithm = NSGAIII(CNDP(), divisions_outer=12, selector=TournamentSelector(dominance=NashDominance()))
-    # algorithm = EpsNSGAII(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=NashDominance()))
-    algorithm.run(500)
+    algorithm = NSGAII(BOCNDP())
+    # algorithm = EpsMOEA(BOCNDP(), epsilons=[0.05])
+    # algorithm = SPEA2(BOCNDP())
+    # algorithm = IBEA(BOCNDP())
+    # algorithm = PAES(BOCNDP())
+    # algorithm = EpsNSGAII(BOCNDP(), epsilons=[0.05])
+    algorithm.run(10000)
 
-    fitness = algorithm.result[0].objectives[0]
-    print(fitness)
-
-    return fitness
+    print(algorithm.result[0].objectives)
+    return algorithm.result[0].objectives
 
 
 pool = mp.Pool(mp.cpu_count())
 samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
 pool.close()
 
-avg = sum(samples) / len(samples)
-stdev = statistics.stdev(samples)
+D, var_D = list(zip(*samples))
 
-print(f"Average: {avg}")
-print(f"Standard Deviation: {stdev}")
+avg_D = sum(D) / len(samples)
+avg_var_D = sum(var_D) / len(samples)
+
+stdev_D = statistics.stdev(D)
+stdev_var_D = statistics.stdev(var_D)
+
+print(f"Average D: {avg_D}")
+print(f"Average var_D: {avg_var_D}")
+
+print(f"Standard Deviation D: {stdev_D}")
+print(f"Standard Deviation var_D: {stdev_var_D}")
