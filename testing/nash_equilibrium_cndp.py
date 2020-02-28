@@ -11,7 +11,7 @@ k = 50
 num_of_tests = 10
 
 
-def getPairwiseConnectivity(exclude=None):
+def get_pairwise_connectivity(exclude=None):
     if exclude is None:
         exclude = {}
 
@@ -26,7 +26,7 @@ class CNDP(Problem):
         self.types[:] = Subset(list(G), k)
 
     def evaluate(self, solution):
-        solution.objectives[0] = getPairwiseConnectivity(solution.variables[0])
+        solution.objectives[0] = get_pairwise_connectivity(solution.variables[0])
 
 
 class NashDominance(Dominance):
@@ -40,14 +40,14 @@ class NashDominance(Dominance):
         nodes_x = x.variables[0][:]
         nodes_y = y.variables[0][:]
 
-        metric_x = getPairwiseConnectivity(nodes_x)
-        metric_y = getPairwiseConnectivity(nodes_y)
+        metric_x = x.objectives[0]
+        metric_y = y.objectives[0]
 
         for i in range(k):
             tmp = nodes_x[i]
             nodes_x[i] = nodes_y[i]
 
-            if getPairwiseConnectivity(nodes_x) < metric_x:
+            if get_pairwise_connectivity(nodes_x) < metric_x:
                 k1 += 1
 
             nodes_x[i] = tmp
@@ -56,7 +56,7 @@ class NashDominance(Dominance):
             tmp = nodes_y[i]
             nodes_y[i] = nodes_x[i]
 
-            if getPairwiseConnectivity(nodes_y) < metric_y:
+            if get_pairwise_connectivity(nodes_y) < metric_y:
                 k2 += 1
 
             nodes_y[i] = tmp

@@ -2,7 +2,7 @@ import multiprocessing as mp
 import statistics
 
 import networkx as nx
-from platypus import NSGAII, EpsMOEA, SPEA2, IBEA, PAES, EpsNSGAII, Problem, Subset
+from platypus import NSGAII, Problem, Subset, Dominance, TournamentSelector
 
 G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
 k = 50
@@ -51,13 +51,57 @@ class BOCNDP(Problem):
         solution.objectives[1] = cardinality_variance(x)
 
 
+class BergeDominance(Dominance):
+    def __init__(self):
+        super(BergeDominance, self).__init__()
+
+    def compare(self, x, y):
+        k1 = 0
+        k2 = 0
+
+        nodes_x = x.variables[0][:]
+        nodes_y = y.variables[0][:]
+
+        D_x = x.objectives[0]
+        D_y = y.objectives[0]
+
+        var_D_x = x.objectives[1]
+        var_D_y = y.objectives[1]
+
+        for i in range(k):
+            tmp = nodes_y[i]
+            nodes_y[i] = nodes_x[i]
+
+            if connected_components(nodes_y) > D_x:
+                k1 += 1
+
+            if cardinality_variance(nodes_y) < var_D_x:
+                k1 += 1
+
+            nodes_y[i] = tmp
+
+        for i in range(k):
+            tmp = nodes_x[i]
+            nodes_x[i] = nodes_y[i]
+
+            if connected_components(nodes_x) > D_y:
+                k2 += 1
+
+            if cardinality_variance(nodes_x) < var_D_y:
+                k2 += 1
+
+            nodes_x[i] = tmp
+
+        if k1 < k2:
+            return -1
+        elif k1 > k2:
+            return 1
+        else:
+            return 0
+
+
 def get_critical_nodes():
-    algorithm = NSGAII(BOCNDP())
-    # algorithm = EpsMOEA(BOCNDP(), epsilons=[0.05])
-    # algorithm = SPEA2(BOCNDP())
-    # algorithm = IBEA(BOCNDP())
-    # algorithm = PAES(BOCNDP())
-    # algorithm = EpsNSGAII(BOCNDP(), epsilons=[0.05])
+    algorithm = NSGAII(BOCNDP(), selector=TournamentSelector(dominance=BergeDominance()))
     algorithm.run(500)
 
     print(algorithm.result[0].objectives)
