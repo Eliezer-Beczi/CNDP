@@ -6,7 +6,7 @@ from platypus import NSGAII, Problem, Subset, Dominance, TournamentSelector
 
 G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
 k = 50
-num_of_tests = 10
+num_of_tests = 4
 
 
 def connected_components(exclude=None):
@@ -102,7 +102,7 @@ class BergeDominance(Dominance):
 
 def get_critical_nodes():
     algorithm = NSGAII(BOCNDP(), selector=TournamentSelector(dominance=BergeDominance()))
-    algorithm.run(500)
+    algorithm.run(20000)
 
     print(algorithm.result[0].objectives)
     return algorithm.result[0].objectives
