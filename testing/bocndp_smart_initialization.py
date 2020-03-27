@@ -1,23 +1,24 @@
-import networkx as nx
-from platypus import NSGAII, default_variator, Problem, Subset
+import multiprocessing as mp
+import random
+import statistics
 
-G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
-k = 50
+import networkx as nx
+from platypus import NSGAII, Problem, Subset, Generator, Solution
+
+G = nx.read_adjlist("input/Ventresca/WattsStrogatz_n1000.txt")
+k = 200
 num_of_tests = 10
 
 
-class SmartNSGAII(NSGAII):
-    def __init__(self, problem):
-        super(SmartNSGAII, self).__init__(problem)
+class DfsGenerator(Generator):
+    def __init__(self):
+        super(DfsGenerator, self).__init__()
+        self.step_size = G.number_of_nodes() // k
 
-    def initialize(self):
-        super(SmartNSGAII, self).initialize()
-
-        # if self.archive is not None:
-        #     self.archive += self.population
-        #
-        # if self.variator is None:
-        #     self.variator = default_variator(self.problem)
+    def generate(self, problem):
+        solution = Solution(problem)
+        solution.variables[0] = list(nx.dfs_preorder_nodes(G, source=random.choice(list(G))))[::self.step_size]
+        return solution
 
 
 def connected_components(exclude=None):
@@ -62,5 +63,28 @@ class BOCNDP(Problem):
         solution.objectives[1] = cardinality_variance(x)
 
 
-algorithm = SmartNSGAII(BOCNDP())
-algorithm.run(10)
+def get_critical_nodes():
+    algorithm = NSGAII(problem=BOCNDP(), generator=DfsGenerator())
+    algorithm.run(20000)
+
+    print(algorithm.result[0].objectives)
+    return algorithm.result[0].objectives
+
+
+pool = mp.Pool(mp.cpu_count())
+samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
+pool.close()
+
+D, var_D = list(zip(*samples))
+
+avg_D = sum(D) / len(samples)
+avg_var_D = sum(var_D) / len(samples)
+
+stdev_D = statistics.stdev(D)
+stdev_var_D = statistics.stdev(var_D)
+
+print(f"Average D: {avg_D}")
+print(f"Average var_D: {avg_var_D}")
+
+print(f"Standard Deviation D: {stdev_D}")
+print(f"Standard Deviation var_D: {stdev_var_D}")
