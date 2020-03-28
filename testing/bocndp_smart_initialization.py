@@ -6,8 +6,8 @@ import networkx as nx
 from platypus import NSGAII, Problem, Subset, Generator, Solution
 from operator import itemgetter
 
-G = nx.read_adjlist("input/Ventresca/WattsStrogatz_n250.txt")
-k = 70
+G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n1000m1.txt")
+k = 75
 num_of_tests = 10
 
 
@@ -30,6 +30,43 @@ class DegreeGenerator(Generator):
         solution = Solution(problem)
         data = sorted(list(G.degree()), key=itemgetter(1), reverse=True)
         solution.variables[0] = [arr[0] for arr in data][:k]
+        return solution
+
+
+def random_walk_restart(steps=10000):
+    core = random.choice(list(G))
+    current = core
+    visited = {}
+
+    while True:
+        for _ in range(steps + 1):
+            if current in visited:
+                visited[current] += 1
+            else:
+                visited[current] = 1
+
+            restart = random.randint(0, 1)
+
+            if restart:
+                current = core
+            else:
+                neighbors = list(G[current])
+                current = random.choice(neighbors)
+
+        if len(visited) >= k:
+            break
+
+    most_visited = sorted(visited, key=visited.get, reverse=True)
+    return most_visited[:k]
+
+
+class RandomWalkGenerator(Generator):
+    def __init__(self):
+        super(RandomWalkGenerator, self).__init__()
+
+    def generate(self, problem):
+        solution = Solution(problem)
+        solution.variables[0] = random_walk_restart()
         return solution
 
 
@@ -77,7 +114,8 @@ class BOCNDP(Problem):
 
 def get_critical_nodes():
     # algorithm = NSGAII(problem=BOCNDP(), generator=DfsGenerator())
-    algorithm = NSGAII(problem=BOCNDP(), generator=DegreeGenerator())
+    # algorithm = NSGAII(problem=BOCNDP(), generator=DegreeGenerator())
+    algorithm = NSGAII(problem=BOCNDP(), generator=RandomWalkGenerator())
     algorithm.run(20000)
 
     print(algorithm.result[0].objectives)
