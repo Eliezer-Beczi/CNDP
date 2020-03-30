@@ -1,10 +1,10 @@
 import multiprocessing as mp
 import random
 import statistics
+from operator import itemgetter
 
 import networkx as nx
 from platypus import NSGAII, Problem, Subset, Generator, Solution
-from operator import itemgetter
 
 G = nx.read_adjlist("input/Ventresca/WattsStrogatz_n250.txt")
 k = 70
@@ -22,18 +22,35 @@ class DfsGenerator(Generator):
         return solution
 
 
+# x - number of nodes with highest degree
+def degree_random(x):
+    solution = degree_random.nodes_sorted_degree[:x]
+
+    while len(solution) < k:
+        node = random.choice(degree_random.nodes_sorted_degree)
+
+        if node not in solution:
+            solution.append(node)
+
+    random.shuffle(solution)
+    return solution
+
+
+degree_random.nodes_sorted_degree = [arr[0] for arr in
+                                     sorted(list(G.degree()), key=itemgetter(1), reverse=True)]  # static variable
+
+
 class DegreeGenerator(Generator):
     def __init__(self):
         super(DegreeGenerator, self).__init__()
 
     def generate(self, problem):
         solution = Solution(problem)
-        data = sorted(list(G.degree()), key=itemgetter(1), reverse=True)
-        solution.variables[0] = [arr[0] for arr in data][:k]
+        solution.variables[0] = degree_random(random.randint(k // 3, (k * 2) // 3))
         return solution
 
 
-def random_walk_restart(steps=10000, restart_prob=0.2):
+def random_walk(steps=10000, restart_prob=0.2):
     visited = {}
 
     while True:
@@ -69,7 +86,7 @@ class RandomWalkGenerator(Generator):
 
     def generate(self, problem):
         solution = Solution(problem)
-        solution.variables[0] = random_walk_restart()
+        solution.variables[0] = random_walk()
         return solution
 
 
@@ -117,8 +134,8 @@ class BOCNDP(Problem):
 
 def get_critical_nodes():
     # algorithm = NSGAII(problem=BOCNDP(), generator=DfsGenerator())
-    # algorithm = NSGAII(problem=BOCNDP(), generator=DegreeGenerator())
-    algorithm = NSGAII(problem=BOCNDP(), generator=RandomWalkGenerator())
+    algorithm = NSGAII(problem=BOCNDP(), generator=DegreeGenerator())
+    # algorithm = NSGAII(problem=BOCNDP(), generator=RandomWalkGenerator())
     algorithm.run(10000)
 
     print(algorithm.result[0].objectives)
