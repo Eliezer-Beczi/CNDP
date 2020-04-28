@@ -1,13 +1,13 @@
 import multiprocessing as mp
 import random
 import statistics
+from operator import itemgetter
 
 import networkx as nx
 from platypus import NSGAII, Problem, Subset, Generator, Solution
-from operator import itemgetter
 
-G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n1000m1.txt")
-k = 75
+G = nx.read_adjlist("input/Ventresca/WattsStrogatz_n250.txt")
+k = 70
 num_of_tests = 10
 
 
@@ -22,32 +22,50 @@ class DfsGenerator(Generator):
         return solution
 
 
+# x - number of nodes with highest degree
+def degree_random(x):
+    solution = degree_random.nodes_sorted_degree[:x]
+
+    while len(solution) < k:
+        node = random.choice(degree_random.nodes_sorted_degree)
+
+        if node not in solution:
+            solution.append(node)
+
+    random.shuffle(solution)
+    return solution
+
+
+degree_random.nodes_sorted_degree = [arr[0] for arr in
+                                     sorted(list(G.degree()), key=itemgetter(1), reverse=True)]  # static variable
+
+
 class DegreeGenerator(Generator):
     def __init__(self):
         super(DegreeGenerator, self).__init__()
 
     def generate(self, problem):
         solution = Solution(problem)
-        data = sorted(list(G.degree()), key=itemgetter(1), reverse=True)
-        solution.variables[0] = [arr[0] for arr in data][:k]
+        solution.variables[0] = degree_random(random.randint(k // 3, (k * 2) // 3))
         return solution
 
 
-def random_walk_restart(steps=10000):
-    core = random.choice(list(G))
-    current = core
+def random_walk(steps=10000, restart_prob=0.2):
     visited = {}
 
     while True:
+        core = random.choice(list(G))
+        current = core
+
         for _ in range(steps + 1):
             if current in visited:
                 visited[current] += 1
             else:
                 visited[current] = 1
 
-            restart = random.randint(0, 1)
+            restart = random.random()
 
-            if restart:
+            if restart < restart_prob:
                 current = core
             else:
                 neighbors = list(G[current])
@@ -55,6 +73,8 @@ def random_walk_restart(steps=10000):
 
         if len(visited) >= k:
             break
+        else:
+            visited = {}
 
     most_visited = sorted(visited, key=visited.get, reverse=True)
     return most_visited[:k]
@@ -66,7 +86,7 @@ class RandomWalkGenerator(Generator):
 
     def generate(self, problem):
         solution = Solution(problem)
-        solution.variables[0] = random_walk_restart()
+        solution.variables[0] = random_walk()
         return solution
 
 
@@ -114,29 +134,28 @@ class BOCNDP(Problem):
 
 def get_critical_nodes():
     # algorithm = NSGAII(problem=BOCNDP(), generator=DfsGenerator())
-    # algorithm = NSGAII(problem=BOCNDP(), generator=DegreeGenerator())
-    algorithm = NSGAII(problem=BOCNDP(), generator=RandomWalkGenerator())
-    algorithm.run(20000)
+    algorithm = NSGAII(problem=BOCNDP(), generator=DegreeGenerator())
+    # algorithm = NSGAII(problem=BOCNDP(), generator=RandomWalkGenerator())
+    algorithm.run(10000)
 
     print(algorithm.result[0].objectives)
     return algorithm.result[0].objectives
 
 
-if __name__ == '__main__':
-    pool = mp.Pool(mp.cpu_count())
-    samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
-    pool.close()
+pool = mp.Pool(mp.cpu_count())
+samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
+pool.close()
 
-    D, var_D = list(zip(*samples))
+D, var_D = list(zip(*samples))
 
-    avg_D = sum(D) / len(samples)
-    avg_var_D = sum(var_D) / len(samples)
+avg_D = sum(D) / len(samples)
+avg_var_D = sum(var_D) / len(samples)
 
-    stdev_D = statistics.stdev(D)
-    stdev_var_D = statistics.stdev(var_D)
+stdev_D = statistics.stdev(D)
+stdev_var_D = statistics.stdev(var_D)
 
-    print(f"Average D: {avg_D}")
-    print(f"Average var_D: {avg_var_D}")
+print(f"Average D: {avg_D}")
+print(f"Average var_D: {avg_var_D}")
 
-    print(f"Standard Deviation D: {stdev_D}")
-    print(f"Standard Deviation var_D: {stdev_var_D}")
+print(f"Standard Deviation D: {stdev_D}")
+print(f"Standard Deviation var_D: {stdev_var_D}")
