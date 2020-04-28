@@ -40,17 +40,14 @@ def genetic_algorithm(G, k, N=30, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tm
     while len(P) < N:
         P.append(_generate_random_solution(G, k))
 
+    P.sort(key=my_key)
     best_S = P[0].copy()
-    gamma = _update(G, best_S, P, alpha)
     best_S_fitness = fitness_function(best_S)
-
-    # print(best_S_fitness)
+    gamma = _update(G, best_S, P, alpha)
 
     while t < tmax:
-        # print(f"Generation: {t + 1}")
-
         new_P = _new_generation(k, N, P)
-        _mutation(G, k, N, new_P, pi)
+        new_P = _mutation(G, k, N, new_P, pi)
 
         P.extend(new_P)
         P.sort(key=my_key)
@@ -62,10 +59,7 @@ def genetic_algorithm(G, k, N=30, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tm
         if curr_S_fitness < best_S_fitness:
             best_S = curr_S.copy()
             best_S_fitness = curr_S_fitness
-
             pi = pi_min
-
-            # print(best_S_fitness)
         else:
             pi = min(pi + delta_pi, pi_max)
 
@@ -115,12 +109,14 @@ def _new_generation(k, N, P):
     return new_P
 
 
-def _mutation(G, k, N, new_P, pi):
+def _mutation(G, k, N, P, pi):
+    new_P = []
+
     for i in range(N):
         r = random.randint(1, 100)
 
         if r <= pi:
-            new_S = list(new_P[i])
+            new_S = list(P[i])
             ng = random.randint(0, k)
             random.shuffle(new_S)
 
@@ -134,11 +130,17 @@ def _mutation(G, k, N, new_P, pi):
                 u = nodes.pop()
                 new_S.append(u)
 
+            new_P.append(new_S)
+        else:
+            S = P[i]
+            new_P.append(S)
+
+    return new_P
+
 
 def _update(G, best_S, P, alpha):
     subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in best_S)
     metric = connectivity_metric.pairwise_connectivity(subgraph)
-
     avg = 0
 
     for S in P:
