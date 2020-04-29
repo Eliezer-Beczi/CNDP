@@ -18,7 +18,7 @@ def greedy_cnp(G, k):
     return S0
 
 
-def genetic_algorithm(G, k, N=30, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tmax=100):
+def genetic_algorithm(G, k, N=100, pi_min=50, pi_max=90, delta_pi=2.5, alpha=2, tmax=10000):
     def fitness_function(S):
         subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in S)
         metric = connectivity_metric.pairwise_connectivity(subgraph)
@@ -31,6 +31,7 @@ def genetic_algorithm(G, k, N=30, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tm
 
     t = 0
     P = []
+    gamma = 1
     pi = pi_min
     my_key = functools.cmp_to_key(my_cmp)
 
@@ -40,10 +41,8 @@ def genetic_algorithm(G, k, N=30, pi_min=5, pi_max=50, delta_pi=5, alpha=0.2, tm
     while len(P) < N:
         P.append(_generate_random_solution(G, k))
 
-    P.sort(key=my_key)
     best_S = P[0].copy()
     best_S_fitness = fitness_function(best_S)
-    gamma = _update(G, best_S, P, alpha)
 
     while t < tmax:
         new_P = _new_generation(k, N, P)
@@ -130,7 +129,7 @@ def _mutation(G, k, N, P, pi):
                 u = nodes.pop()
                 new_S.append(u)
 
-            new_P.append(new_S)
+            new_P.append(set(new_S))
         else:
             S = P[i]
             new_P.append(S)
@@ -148,7 +147,9 @@ def _update(G, best_S, P, alpha):
 
     avg /= len(P)
 
-    if avg == 0:
-        return float('inf')
-    else:
-        return (alpha * metric) / avg
+    try:
+        gamma = (alpha * metric) / avg
+    except:
+        gamma = 1
+
+    return gamma

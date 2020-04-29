@@ -27,10 +27,10 @@ def get_critical_nodes_greedy(G, k):
     return fitness
 
 
-def main():
-    G = nx.read_adjlist("input/Ventresca/WattsStrogatz_n500.txt")
-    src = Source(nx.nx_pydot.to_pydot(G))
-    src.render("graph.gv", view=True)
+if __name__ == '__main__':
+    G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
+    # src = Source(nx.nx_pydot.to_pydot(G))
+    # src.render("graph.gv", view=True)
 
     k = 50
     num_of_tests = 10
@@ -45,6 +45,3 @@ def main():
 
     print(f"Average: {avg}")
     print(f"Standard Deviation: {stdev}")
-
-
-main()
