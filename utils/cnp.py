@@ -18,7 +18,7 @@ def greedy_cnp(G, k):
     return S0
 
 
-def genetic_algorithm(G, k, N=100, pi_min=50, pi_max=90, delta_pi=2.5, alpha=2, tmax=10000):
+def genetic_algorithm(G, k, N=100, pi_min=50, pi_max=90, delta_pi=2.5, alpha=2, tmax=1000):
     def fitness_function(S):
         subgraph = nx.subgraph_view(G, filter_node=lambda n: n not in S)
         metric = connectivity_metric.pairwise_connectivity(subgraph)

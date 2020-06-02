@@ -2,7 +2,7 @@ import multiprocessing as mp
 import statistics
 
 import networkx as nx
-from platypus import NSGAII, Problem, Subset, Dominance, TournamentSelector
+from platypus import NSGAII, Problem, Subset, Dominance, TournamentSelector, Archive
 
 G = nx.read_adjlist("input/Ventresca/WattsStrogatz_n1000.txt")
 k = 200
@@ -100,28 +100,34 @@ class NashDominance(Dominance):
             return 0
 
 
+class NashArchive(Archive):
+    def __init__(self):
+        super(NashArchive, self).__init__(dominance=NashDominance())
+
+
 def get_critical_nodes():
-    algorithm = NSGAII(BOCNDP(), selector=TournamentSelector(dominance=NashDominance()))
+    algorithm = NSGAII(BOCNDP(), selector=TournamentSelector(dominance=NashDominance()), archive=NashArchive())
     algorithm.run(100)
 
     print(algorithm.result[0].objectives)
     return algorithm.result[0].objectives
 
 
-pool = mp.Pool(mp.cpu_count())
-samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
-pool.close()
+if __name__ == '__main__':
+    pool = mp.Pool(mp.cpu_count())
+    samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
+    pool.close()
 
-D, var_D = list(zip(*samples))
+    D, var_D = list(zip(*samples))
 
-avg_D = sum(D) / len(samples)
-avg_var_D = sum(var_D) / len(samples)
+    avg_D = sum(D) / len(samples)
+    avg_var_D = sum(var_D) / len(samples)
 
-stdev_D = statistics.stdev(D)
-stdev_var_D = statistics.stdev(var_D)
+    stdev_D = statistics.stdev(D)
+    stdev_var_D = statistics.stdev(var_D)
 
-print(f"Average D: {avg_D}")
-print(f"Average var_D: {avg_var_D}")
+    print(f"Average D: {avg_D}")
+    print(f"Average var_D: {avg_var_D}")
 
-print(f"Standard Deviation D: {stdev_D}")
-print(f"Standard Deviation var_D: {stdev_var_D}")
+    print(f"Standard Deviation D: {stdev_D}")
+    print(f"Standard Deviation var_D: {stdev_var_D}")

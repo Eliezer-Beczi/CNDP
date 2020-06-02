@@ -1,14 +1,13 @@
 import networkx as nx
 import utils.connectivity_metrics as connectivity_metric
-from platypus import NSGAII, EpsMOEA, NSGAIII, EpsNSGAII, Problem, Dominance, Subset, \
-    TournamentSelector, \
-    HypervolumeFitnessEvaluator
+from platypus import NSGAII, EpsMOEA, NSGAIII, EpsNSGAII, Problem, Dominance, Subset, TournamentSelector, \
+    HypervolumeFitnessEvaluator, Archive
 import statistics
 import multiprocessing as mp
 
 G = nx.read_adjlist("input/Ventresca/BarabasiAlbert_n500m1.txt")
-k = 50
-num_of_tests = 10
+k = 1
+num_of_tests = 1
 
 
 def get_pairwise_connectivity(exclude=None):
@@ -69,12 +68,14 @@ class NashDominance(Dominance):
             return 0
 
 
+class NashArchive(Archive):
+    def __init__(self):
+        super(NashArchive, self).__init__(dominance=NashDominance())
+
+
 def get_critical_nodes():
-    algorithm = NSGAII(CNDP(), selector=TournamentSelector(dominance=NashDominance()))
-    # algorithm = EpsMOEA(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=NashDominance()))
-    # algorithm = NSGAIII(CNDP(), divisions_outer=12, selector=TournamentSelector(dominance=NashDominance()))
-    # algorithm = EpsNSGAII(CNDP(), epsilons=[0.05], selector=TournamentSelector(dominance=NashDominance()))
-    algorithm.run(500)
+    algorithm = NSGAII(CNDP(), selector=TournamentSelector(dominance=NashDominance()), archive=NashArchive())
+    algorithm.run(1000)
 
     fitness = algorithm.result[0].objectives[0]
     print(fitness)
@@ -82,12 +83,13 @@ def get_critical_nodes():
     return fitness
 
 
-pool = mp.Pool(mp.cpu_count())
-samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
-pool.close()
+if __name__ == '__main__':
+    pool = mp.Pool(mp.cpu_count())
+    samples = pool.starmap_async(get_critical_nodes, [() for _ in range(num_of_tests)]).get()
+    pool.close()
 
-avg = sum(samples) / len(samples)
-stdev = statistics.stdev(samples)
+    avg = sum(samples) / len(samples)
+    stdev = statistics.stdev(samples)
 
-print(f"Average: {avg}")
-print(f"Standard Deviation: {stdev}")
+    print(f"Average: {avg}")
+    print(f"Standard Deviation: {stdev}")
