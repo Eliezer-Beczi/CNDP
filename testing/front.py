@@ -1,12 +1,11 @@
-import multiprocessing as mp
-import random
 from operator import itemgetter
 
 import networkx as nx
-from platypus import NSGAII, Problem, Subset, Generator, Solution, SPEA2, EpsMOEA, IBEA, PAES, EpsNSGAII
+from platypus import *
 
-G = nx.read_adjlist("input/Ventresca/WattsStrogatz_n250.txt")
-k = 70
+G = nx.read_adjlist("input/Ventresca/ForestFire_n2000.txt")
+k = 200
+num_of_tests = 10
 
 
 class DfsGenerator(Generator):
@@ -130,39 +129,32 @@ class BOCNDP(Problem):
         solution.objectives[1] = cardinality_variance(x)
 
 
-def get_critical_nodes(algorithm, max_iter=1):
-    algorithm.run(max_iter)
-    return algorithm.result
-
-
-def write2file(results):
-    with open("results.txt", "w") as file:
+def write2file(file_name, results):
+    with open(file_name, "w") as file:
         for result in results:
             for solution in result:
-                file.write(f"{solution.objectives[0] * (-1)} {solution.objectives[1]}\n")
+                file.write(f"{solution.objectives[0]} {solution.objectives[1]}\n")
 
-            file.write('\n')
+        file.write('\n')
 
 
-# NSGAII with smart init
-# algorithms = [
-#     NSGAII(problem=BOCNDP(), generator=DfsGenerator()),
-#     NSGAII(problem=BOCNDP(), generator=DegreeGenerator()),
-#     NSGAII(problem=BOCNDP(), generator=RandomWalkGenerator())
-# ]
-
-# Pareto dominance
 algorithms = [
-    NSGAII(BOCNDP()),
-    EpsMOEA(BOCNDP(), epsilons=[0.05]),
-    SPEA2(BOCNDP()),
-    IBEA(BOCNDP()),
-    PAES(BOCNDP()),
-    EpsNSGAII(BOCNDP(), epsilons=[0.05])
+    (NSGAII, {"population_size": 50}, "nsga2_random_init"),
+    (NSGAII, {"population_size": 50, "generator": DfsGenerator()}, "nsga2_dfs_init"),
+    (NSGAII, {"population_size": 50, "generator": DegreeGenerator()}, "nsga2_degree_init"),
+    (NSGAII, {"population_size": 50, "generator": RandomWalkGenerator()}, "nsga2_rwr_init")
 ]
 
-pool = mp.Pool(mp.cpu_count())
-samples = pool.starmap(get_critical_nodes, [(algorithm, 10000) for algorithm in algorithms])
-pool.close()
+problems = [BOCNDP()]
 
-write2file(samples)
+with ProcessPoolEvaluator() as evaluator:
+    results = experiment(algorithms, problems, seeds=num_of_tests, nfe=10000, evaluator=evaluator, display_stats=True)
+
+for algorithm in six.iterkeys(results):
+    solutions = []
+
+    for test in range(num_of_tests):
+        result = results[algorithm]["BOCNDP"][test]
+        solutions.append(result)
+
+    write2file(f"front/{algorithm}.txt", solutions)
