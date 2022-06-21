@@ -5,7 +5,7 @@ graphviz==0.14
 kiwisolver==1.2.0
 matplotlib==3.2.1
 networkx==2.4
-numpy==1.18.5
+numpy==1.22.0
 Platypus-Opt==1.0.4
 pycodestyle==2.6.0
 pydot==1.4.1
